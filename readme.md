@@ -108,8 +108,3 @@ This project was developed with assistance from AI tools in the following areas:
 #### Documentation
 - **API documentation**: AI helped structure and format the API endpoint documentation
 - **README sections**: Assisted in organizing and writing comprehensive setup instructions
-
-#### Problem Solving
-- **Docker networking**: AI provided guidance on service communication within Docker Compose
-- **Concurrency patterns**: Suggested ThreadPoolExecutor implementation for worker processes
-- **Authentication flow**: Helped design the token rotation mechanism
