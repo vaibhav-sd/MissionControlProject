@@ -6,6 +6,7 @@ import json
 from threading import Thread
 import threading
 import time
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -54,6 +55,27 @@ def setup_queues():
 
     except Exception as e:
         print('Failed to setup Queues.')
+
+def generate_token():
+    token = str(uuid.uuid4())
+    expiry = datetime.now() + timedelta(seconds=TOKEN_ROTATION_INTERVAL)
+    
+    with token_lock:
+        active_tokens[token] = expiry
+        # Clean up expired tokens
+        current_time = datetime.now()
+        expired_tokens = [t for t, exp in active_tokens.items() if exp < current_time]
+        for expired_token in expired_tokens:
+            del active_tokens[expired_token]
+    
+    print(f"Generated new token: {token[:8]}... (expires at {expiry})")
+    return token, expiry
+
+def is_token_valid(token):
+    with token_lock:
+        if token in active_tokens:
+            return active_tokens[token] > datetime.now()
+        return False
 
 def get_status(mission_id):
     if redis_conn:
@@ -110,6 +132,12 @@ def status_updates_listener():
 
             mission_id = message.get('mission_id')
             status = message.get('mission_status')
+            token = message.get('token')
+
+            if not token or not is_token_valid(token):
+                print(f"Invalid token received for mission {mission_id}")
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+                return
             
             store_mission_status(mission_id, status)
             ch.basic_ack(delivery_tag=method.delivery_tag)  
@@ -125,6 +153,31 @@ def status_updates_listener():
 @app.route('/', methods=['GET'])
 def home():
     return "Hello, World!"
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'services': {
+            'redis': redis_conn is not None,
+            'rabbitmq': get_rabbitmq_conn() is not None
+        }
+    }), 200
+
+@app.route('/auth/token', methods=['POST'])
+def get_auth_token():
+    try:
+        token, expiry = generate_token()
+        
+        return jsonify({
+            'token': token,
+            'expires_at': expiry.isoformat(),
+            'expires_in_seconds': TOKEN_ROTATION_INTERVAL
+        }), 200
+        
+    except Exception as e:
+        print(f"Error generating token: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/missions', methods=['POST'])
 def create_mission():

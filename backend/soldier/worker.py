@@ -3,7 +3,11 @@ import json
 import time
 import random
 from concurrent.futures import ThreadPoolExecutor
+import requests
+from datetime import datetime, timedelta
+import threading
 
+COMMANDER_URL = 'http://commander-app:5000'
 REDIS_URL = 'redis'
 ORDERS_QUEUE = 'orders_queue'
 STATUS_QUEUE = 'status_queue'
@@ -12,11 +16,16 @@ RABBITMQ_USER = 'guest'
 RABBITMQ_PASSWORD = 'guest'
 RABBITMQ_PORT = 5672
 TOKEN_ROTATION_INTERVAL = 30
+TOKEN_REFRESH_INTERVAL = 25
 MISSION_MIN_DURATION = 5
 MISSION_MAX_DURATION = 15
 SUCCESS_RATE = 0.9
 
 
+current_token = None
+token_expiry = None
+running = True
+token_lock = threading.Lock()
 executor = ThreadPoolExecutor(max_workers=5)
 
 def get_rabbitmq_conn(retries=5, delay=3):
@@ -33,8 +42,61 @@ def get_rabbitmq_conn(retries=5, delay=3):
     print("All attempts to connect to RabbitMQ failed.")
     return None
 
+def get_auth_token():
+    global current_token, token_expiry
+    try:
+        response = requests.post(f"{COMMANDER_URL}/auth/token", timeout=10)
+        if response.status_code == 200:
+            token_data = response.json()
+            token = token_data['token']
+            expires_at = datetime.fromisoformat(token_data['expires_at'].replace('Z', '+00:00'))
+            
+            with token_lock:
+                current_token = token
+                token_expiry = expires_at
+            
+            print(f"Retrieved new token: {token[:8]}... (expires at {expires_at})")
+            return token
+        else:
+            print(f"Failed to get token: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"Error getting auth token: {e}")
+        return None
+
+def is_token_valid():
+    global current_token, token_expiry
+    with token_lock:
+        if not current_token or not token_expiry:
+            return False
+        return datetime.now() < (token_expiry - timedelta(seconds=5))
+
+def ensure_valid_token():
+    if not is_token_valid():
+        print("Token expired or missing, requesting new token")
+        return get_auth_token()
+    return current_token
+
+def start_token_rotation():
+    def token_rotation_worker():
+        while running:
+            try:
+                time.sleep(TOKEN_REFRESH_INTERVAL)
+                if running:
+                    ensure_valid_token()
+            except Exception as e:
+                print(f"Error in token rotation: {e}")
+    
+    token_thread = threading.Thread(target=token_rotation_worker, daemon=True)
+    token_thread.start()
+    print("Token rotation started")
 
 def publish_status(mission_id, mission_status):
+    token = ensure_valid_token()
+    if not token:
+        print(f"Cannot publish status for mission {mission_id}: No valid token")
+        return False
+    
     rmq_conn = get_rabbitmq_conn()
 
     if not rmq_conn:
@@ -44,7 +106,7 @@ def publish_status(mission_id, mission_status):
         channel = rmq_conn.channel()
         channel.queue_declare(queue=STATUS_QUEUE, durable=True)
 
-        data = {"mission_id":mission_id, "mission_status":mission_status}
+        data = {"mission_id":mission_id, "mission_status":mission_status, "token":token}
 
         channel.basic_publish(exchange='', routing_key=STATUS_QUEUE, body=json.dumps(data))
         
