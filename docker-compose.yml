@@ -17,13 +17,14 @@ services:
   worker:
     build:
       context: ./backend/soldier  
-    container_name: soldier-app
+    # container_name: soldier-app
     depends_on:
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_started
-
+    deploy:
+      replicas: 3
     networks:
       - app_network
 
@@ -48,6 +49,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  frontend:
+      build:
+        context: ./frontend  
+      container_name: frontend-app
+      ports:
+        - "3000:3000"  
+      depends_on:
+        - app  
+      networks:
+        - app_network
 
 networks:
   app_network:
