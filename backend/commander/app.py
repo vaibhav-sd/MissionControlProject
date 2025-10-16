@@ -7,8 +7,10 @@ from threading import Thread
 import threading
 import time
 from datetime import datetime, timedelta
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:3000"])
 
 REDIS_URL = 'redis'
 ORDERS_QUEUE = 'orders_queue'
@@ -188,7 +190,8 @@ def create_mission():
 
         mission_order = {
             'mission_id':mission_id,
-            'mission_data': data
+            'mission_data': data,
+            'timestamp': datetime.now().isoformat()
         }
 
         store_mission_status(mission_id, "QUEUED")
@@ -197,7 +200,8 @@ def create_mission():
             return jsonify({
                 'mission_id': mission_id,
                 'status': 'QUEUED',
-                'message': 'Mission queued successfully'
+                'message': 'Mission queued successfully',
+                'timestamp': datetime.now().isoformat()
             }), 202
         else:
             return jsonify({'error': 'Failed to queue mission'}), 500
@@ -218,7 +222,8 @@ def list_missions():
                     status_data = json.loads(status_json.decode())
                     missions.append({
                         'mission_id': mission_id.decode(),
-                        'status': status_data.get('status')
+                        'status': status_data.get('status'),
+                        'timestamp': datetime.now().isoformat()
                     })
             except Exception as e:
                 print(f"Issue with redis")
@@ -226,14 +231,16 @@ def list_missions():
                     status_data = json.loads(status_json.decode())
                     missions.append({
                         'mission_id': mission_id.decode(),
-                        'status':status_data.get('status')
+                        'status':status_data.get('status'),
+                        'timestamp': datetime.now().isoformat()
                     })
 
         else:
             for mission_id, status_json in mission_status.items():
                 missions.append({
                     'mission_id': mission_id,
-                    'status': mission_status[mission_id].get('status')
+                    'status': mission_status[mission_id].get('status'),
+                    'timestamp': datetime.now().isoformat()
                 })
 
         return jsonify({"missions":missions}), 200
@@ -254,7 +261,8 @@ def get_mission_status(mission_id):
         
         return jsonify({
             'mission_id': mission_id,
-            'status': status_data['status']
+            'status': status_data['status'],
+            'timestamp': datetime.now().isoformat()
         }), 200
         
     except Exception as e:
