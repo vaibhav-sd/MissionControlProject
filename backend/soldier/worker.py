@@ -106,7 +106,7 @@ def publish_status(mission_id, mission_status):
         channel = rmq_conn.channel()
         channel.queue_declare(queue=STATUS_QUEUE, durable=True)
 
-        data = {"mission_id":mission_id, "mission_status":mission_status, "token":token}
+        data = {"mission_id":mission_id, "mission_status":mission_status, 'timestamp': datetime.now().isoformat(), "token":token}
 
         channel.basic_publish(exchange='', routing_key=STATUS_QUEUE, body=json.dumps(data))
         
