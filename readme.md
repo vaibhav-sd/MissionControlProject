@@ -1,4 +1,4 @@
-# Missino Control Project
+# Mission Control Project
 Commander's Camp is a distributed mission management system that allows clients to submit, monitor, and track the progress of military-style missions in a simulated environment. It features asynchronous processing, persistent status tracking, token-based authentication, and simulated mission execution outcomes with a React-based frontend.
 
 ![System Overview](https://github.com/vaibhav-sd/MissionControlProject/blob/master/images/frontend.png)
