@@ -184,7 +184,7 @@ Commander's Camp API
 ##  Architecture Overview
 The Commander's Camp system implements a **secure, asynchronous, one-way command architecture** designed for military operations where field units cannot expose public endpoints. The system ensures soldiers are never exposed by waiting for commands through a resilient communication pattern.
 
-![Architecture Diagram](images/architecture.png)
+![Architecture Diagram](images/architecture.svg)
 *Figure 6:  Architecture - Secure Command & Control System*
 
 #### Core Components:
