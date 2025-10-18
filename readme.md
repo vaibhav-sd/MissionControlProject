@@ -2,7 +2,7 @@
 Commander's Camp is a distributed mission management system that allows clients to submit, monitor, and track the progress of military-style missions in a simulated environment. It features asynchronous processing, persistent status tracking, token-based authentication, and simulated mission execution outcomes with a React-based frontend.
 
 ![System Overview](https://github.com/vaibhav-sd/MissionControlProject/blob/master/images/frontend.png)
-*Figure 1: frontend
+*Figure 1: frontend* 
 
 ---
 
@@ -181,10 +181,10 @@ Commander's Camp API
 - **Distributed Security**: Works across multiple worker instances without coordination
 
 
-###  Architecture Overview
+##  Architecture Overview
 The Commander's Camp system implements a **secure, asynchronous, one-way command architecture** designed for military operations where field units cannot expose public endpoints. The system ensures soldiers are never exposed by waiting for commands through a resilient communication pattern.
 
-![Architecture Diagram](https://github.com/vaibhav-sd/MissionControlProject/blob/master/images/architecture.png)
+![Architecture Diagram](images/architecture.png)
 *Figure 6:  Architecture - Secure Command & Control System*
 
 #### Core Components:
@@ -238,8 +238,37 @@ The Commander's Camp system implements a **secure, asynchronous, one-way command
 7. **Status Persistence**: Commander receives updates and persists to Redis
 8. **Client Monitoring**: Client polls API for real-time status updates
 
-![Data Flow Diagram](https://github.com/vaibhav-sd/MissionControlProject/blob/master/images/flow.svg)
+![Data Flow Diagram](images/flow.svg)
 *Figure 7: System Data Flow*
+
+
+## Mission Success Rate & Testing Summary
+
+### Configurable Success Rate
+The mission execution success probability can be adjusted via the `SUCCESS_RATE` parameter in `worker.py`:
+
+```python
+# worker.py
+SUCCESS_RATE = 0.9  
+```
+- 90% of missions expected to complete successfully
+- **Default Value**: 0.9 (90% success rate)
+- **Effect**: Determines the likelihood that a mission completes successfully versus failing.
+- **Usage**: Changing this value allows simulation of different reliability scenarios for testing purposes.
+
+### Automated Mission Testing
+
+The system includes a test harness to validate mission execution, concurrency handling, and token rotation. Test results are logged with timestamps and summarized at the end.
+
+
+**Test Coverage:**
+1. **Single Mission Flow**: Ensures individual missions are executed and status updates are published.
+2. **Concurrency (20 Missions)**: Validates the system handles multiple missions simultaneously without errors or lost messages.
+3. **Token Rotation**: Confirms workers correctly refresh tokens during mission execution and maintain secure communication.
+4. **Test Logs**: All test runs generate timestamped log files for audit and debugging purposes (e.g., mission_test_YYYYMMDD_HHMMSS.log).
+
+![Testing Summary](https://github.com/vaibhav-sd/MissionControlProject/blob/master/images/testing_summary.png)
+*Figure 8: Testing Summary*
 
 ---
 ## AI Usage Policy
@@ -251,6 +280,7 @@ This project was developed with assistance from AI tools in the following areas:
 - **Initial project structure**: AI assisted in Docker configuration
 - **Boilerplate code**: Generated foundational Flask routes, RabbitMQ connection handling, and React components
 - **Error handling patterns**: AI suggested robust error handling and retry mechanisms
+- **Testing scripts**: AI helped create automated mission testing scripts to validate mission execution, concurrency, and token rotation
 
 #### Documentation
 - **API documentation**: AI helped structure and format the API endpoint documentation
